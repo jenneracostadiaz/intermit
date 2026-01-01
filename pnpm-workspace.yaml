@@ -1,6 +1,8 @@
 onlyBuiltDependencies:
   - '@prisma/engines'
+  - bufferutil
   - esbuild
   - prisma
   - sharp
   - unrs-resolver
+  - utf-8-validate
