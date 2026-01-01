@@ -95,3 +95,47 @@ export async function getFastingHistory() {
         },
     });
 }
+
+export async function deleteFastingSession(sessionId: string) {
+    const user = await getUser();
+    if (!user) throw new Error("Unauthorized");
+
+    await prisma.fastingSession.delete({
+        where: {
+            id: sessionId,
+            userId: user.id, // Ensure user owns the session
+        },
+    });
+
+    revalidatePath("/");
+}
+
+export async function updateFastingSession(
+    sessionId: string,
+    data: { startTime: Date; endTime: Date }
+) {
+    const user = await getUser();
+    if (!user) throw new Error("Unauthorized");
+
+    const duration = Math.floor(
+        (data.endTime.getTime() - data.startTime.getTime()) / 1000 / 60
+    );
+
+    if (duration < 0) {
+        throw new Error("End time cannot be before start time");
+    }
+
+    await prisma.fastingSession.update({
+        where: {
+            id: sessionId,
+            userId: user.id,
+        },
+        data: {
+            startTime: data.startTime,
+            endTime: data.endTime,
+            duration,
+        },
+    });
+
+    revalidatePath("/");
+}
