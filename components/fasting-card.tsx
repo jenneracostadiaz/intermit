@@ -5,6 +5,9 @@ import { startFastingSession, stopFastingSession } from "@/app/actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { FastingStage, getCurrentStage, getElapsedMinutes, getProgressInStage } from "@/lib/fasting";
 import { formatDuration, intervalToDuration } from "date-fns";
 
@@ -18,6 +21,18 @@ type Session = {
 export function FastingCard({ activeSession }: { activeSession: Session }) {
     const [isPending, startTransition] = useTransition();
     const [elapsedMinutes, setElapsedMinutes] = useState(0);
+    const [isCustomStartOpen, setIsCustomStartOpen] = useState(false);
+    const [customStartTime, setCustomStartTime] = useState("");
+
+    const handleCustomStart = () => {
+        if (!customStartTime) return;
+        startTransition(async () => {
+            const date = new Date(customStartTime);
+            await startFastingSession(date);
+            setIsCustomStartOpen(false);
+            setCustomStartTime("");
+        });
+    };
 
     // Update timer
     useEffect(() => {
@@ -92,7 +107,7 @@ export function FastingCard({ activeSession }: { activeSession: Session }) {
                     </div>
                 )}
             </CardContent>
-            <CardFooter className="flex justify-center pb-6">
+            <CardFooter className="flex flex-col gap-3 justify-center pb-6">
                 {activeSession ? (
                     <Button
                         variant="destructive"
@@ -104,15 +119,55 @@ export function FastingCard({ activeSession }: { activeSession: Session }) {
                         {isPending ? "Stopping..." : "End Fast"}
                     </Button>
                 ) : (
-                    <Button
-                        variant="default"
-                        size="lg"
-                        onClick={handleStart}
-                        disabled={isPending}
-                        className="w-full bg-green-600 hover:bg-green-700"
-                    >
-                        {isPending ? "Starting..." : "Start Fast"}
-                    </Button>
+                    <>
+                        <Button
+                            variant="default"
+                            size="lg"
+                            onClick={handleStart}
+                            disabled={isPending}
+                            className="w-full bg-green-600 hover:bg-green-700"
+                        >
+                            {isPending ? "Starting..." : "Start Fast"}
+                        </Button>
+
+                        <Dialog open={isCustomStartOpen} onOpenChange={setIsCustomStartOpen}>
+                            <DialogTrigger asChild>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-muted-foreground text-xs hover:text-foreground"
+                                >
+                                    Start with custom time
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                                <DialogHeader>
+                                    <DialogTitle>Set Start Time</DialogTitle>
+                                    <DialogDescription>
+                                        Choose when you started your fast.
+                                    </DialogDescription>
+                                </DialogHeader>
+                                <div className="grid gap-4 py-4">
+                                    <div className="flex flex-col gap-2">
+                                        <Label htmlFor="startTime">
+                                            Start Time
+                                        </Label>
+                                        <Input
+                                            id="startTime"
+                                            type="datetime-local"
+                                            value={customStartTime}
+                                            onChange={(e) => setCustomStartTime(e.target.value)}
+                                        />
+                                    </div>
+                                </div>
+                                <DialogFooter>
+                                    <Button onClick={handleCustomStart} disabled={!customStartTime || isPending}>
+                                        {isPending ? "Starting..." : "Confirm Start"}
+                                    </Button>
+                                </DialogFooter>
+                            </DialogContent>
+                        </Dialog>
+                    </>
                 )}
             </CardFooter>
         </Card>
